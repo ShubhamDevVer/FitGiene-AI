@@ -176,6 +176,7 @@ def get_db_connection() -> Any:
         database=st.secrets["DB_NAME"],
         port=int(st.secrets["DB_PORT"]),
         autocommit=False,
+        use_pure=True
     )
 
 
