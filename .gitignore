@@ -11,3 +11,5 @@ media/
 *.joblib
 .env
 venv/
+.env
+venv/
