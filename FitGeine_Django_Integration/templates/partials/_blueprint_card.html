@@ -1,0 +1,81 @@
+{% comment %}
+_blueprint_card.html
+────────────────────
+Weekly Blueprint day card. Included with {% with %} colour vars:
+  ring, bg, text, border, dot, badge_label
+Expects `day` from the for-loop context: day, activity, intensity, duration, exercises[]
+{% endcomment %}
+
+<div class="relative flex flex-col bg-slate-800/50 border border-slate-700/60 rounded-xl overflow-hidden
+            hover:border-slate-600 hover:bg-slate-800 transition-all group">
+
+  <!-- Intensity colour strip across top -->
+  <div class="h-0.5 w-full {{ dot }}"></div>
+
+  <div class="p-3 flex flex-col gap-2.5 flex-1">
+
+    <!-- Day label + badge -->
+    <div class="flex items-center justify-between">
+      <span class="text-xs font-bold text-slate-500 uppercase tracking-widest">{{ day.day }}</span>
+      <span class="text-[10px] font-bold px-1.5 py-0.5 rounded {{ bg }} {{ text }} border {{ border }}">
+        {{ badge_label }}
+      </span>
+    </div>
+
+    <!-- Activity name -->
+    <p class="text-sm font-bold text-slate-100 leading-tight group-hover:text-white transition-colors">
+      {{ day.activity }}
+    </p>
+
+    <!-- Duration pill -->
+    <div class="flex items-center gap-1.5">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 text-slate-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0z"/>
+      </svg>
+      <span class="text-xs text-slate-400 tabular-nums">{{ day.duration }} min</span>
+    </div>
+
+    <!-- Exercise list -->
+    {% if day.exercises %}
+    <div class="mt-auto pt-2 border-t border-slate-700/50 space-y-1.5">
+      {% for ex in day.exercises %}
+      <!-- Each exercise chip — hover shows GIF preview via tooltip -->
+      <div class="relative group/ex">
+        <div class="flex items-center gap-1.5 cursor-default">
+          <span class="h-1 w-1 rounded-full {{ dot }} flex-shrink-0"></span>
+          <span class="text-xs text-slate-400 truncate leading-none">{{ ex.name }}</span>
+          {% if ex.detail %}
+          <span class="text-[10px] text-slate-600 truncate">· {{ ex.detail }}</span>
+          {% endif %}
+        </div>
+
+        <!-- GIF preview tooltip (appears above on hover) -->
+        {% if ex.gif %}
+        <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50
+                    opacity-0 group-hover/ex:opacity-100
+                    pointer-events-none group-hover/ex:pointer-events-auto
+                    transition-opacity duration-200">
+          <div class="bg-slate-900 border border-slate-700 rounded-xl shadow-2xl p-2 w-44">
+            <img src="{{ ex.gif }}"
+                 alt="{{ ex.name }}"
+                 loading="lazy"
+                 class="w-full rounded-lg object-cover"
+                 style="max-height:110px;" />
+            <p class="text-xs text-slate-300 text-center mt-1.5 font-medium">{{ ex.name }}</p>
+            {% if ex.detail %}
+            <p class="text-[10px] text-slate-500 text-center">{{ ex.detail }}</p>
+            {% endif %}
+          </div>
+          <!-- Arrow -->
+          <div class="flex justify-center">
+            <div class="w-2 h-2 bg-slate-700 rotate-45 -mt-1 border-r border-b border-slate-700"></div>
+          </div>
+        </div>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+  </div>
+</div>

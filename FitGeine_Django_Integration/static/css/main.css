@@ -1,0 +1,10 @@
+/* Tailwind CDN handles all styling — this file is kept as a placeholder for future custom utilities */
+
+/* Custom 2xs font size not available in Tailwind CDN */
+.text-2xs { font-size: 0.625rem; line-height: 0.875rem; }
+
+/* Sidebar hover expand (used in base.html) */
+#sidebar { transition: width 200ms ease; }
+#sidebar:hover { width: 14rem; }
+#sidebar:hover .nav-label { display: block; }
+.nav-label { display: none; white-space: nowrap; }

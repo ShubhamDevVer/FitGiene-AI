@@ -1,0 +1,88 @@
+========================================================
+FitGenie AI — Local Setup Instructions
+========================================================
+
+Welcome to FitGenie AI! Follow these steps to set up and run the application on a completely new machine.
+
+--------------------------------------------------------
+1. PREREQUISITES
+--------------------------------------------------------
+Before you begin, ensure you have the following installed on your machine:
+- Python 3.10 or higher
+- MySQL Server 8.x (and MySQL Workbench or a similar client)
+
+--------------------------------------------------------
+2. DATABASE SETUP (MySQL)
+--------------------------------------------------------
+FitGenie AI uses a MySQL database. You need to create an empty database before running the app.
+
+1. Open your MySQL client (e.g., MySQL Workbench or terminal).
+2. Log in with your MySQL root credentials.
+3. Run the following SQL command to create the database:
+   
+   CREATE DATABASE fitness_dashboard;
+
+--------------------------------------------------------
+3. ENVIRONMENT VARIABLES (.env)
+--------------------------------------------------------
+The project uses a `.env` file to securely load sensitive credentials like your database password and AI API keys. This file is NOT uploaded to GitHub, so you must create it manually.
+
+1. Inside the `FitGeine_Django_Integration` folder (where `manage.py` lives), create a new file named `.env`
+2. Open `.env` and paste the following block into it:
+
+SECRET_KEY=django-insecure-fitgenie-change-this-in-production-abc123xyz456
+DEBUG=True
+ALLOWED_HOSTS=127.0.0.1,localhost
+DB_NAME=fitness_dashboard
+DB_USER=root
+DB_PASSWORD=YOUR_MYSQL_PASSWORD_HERE
+DB_HOST=localhost
+DB_PORT=3306
+OPENROUTER_API_KEY=YOUR_OPENROUTER_API_KEY_HERE
+OPENROUTER_MODEL=minimax/minimax-01
+
+3. Change `YOUR_MYSQL_PASSWORD_HERE` to your actual MySQL root password.
+4. Change `YOUR_OPENROUTER_API_KEY_HERE` to your OpenRouter API key. (You can get one from https://openrouter.ai/)
+
+--------------------------------------------------------
+4. PYTHON VIRTUAL ENVIRONMENT & DEPENDENCIES
+--------------------------------------------------------
+Open a terminal/command prompt, navigate to the `FitGeine_Django_Integration` folder, and run:
+
+1. Create a virtual environment:
+   python -m venv venv
+
+2. Activate the virtual environment:
+   - On Windows: .\venv\Scripts\activate
+   - On Mac/Linux: source venv/bin/activate
+
+3. Install the required Python packages:
+   pip install -r requirements.txt
+
+--------------------------------------------------------
+5. DATABASE MIGRATIONS (Creating Tables)
+--------------------------------------------------------
+Now that the database exists and dependencies are installed, you need to let Django create all the necessary tables (users, activity logs, etc.).
+
+Run the following commands in your terminal:
+1. python manage.py makemigrations
+2. python manage.py migrate
+
+--------------------------------------------------------
+6. RUNNING THE APPLICATION
+--------------------------------------------------------
+You are ready to start the server!
+
+Run the following command:
+python manage.py runserver 8001
+
+Open your web browser and go to: http://127.0.0.1:8001
+You can now sign up as a new user and use the platform!
+
+--------------------------------------------------------
+(OPTIONAL) ADMIN PANEL
+--------------------------------------------------------
+If you want to view the database from the Django Admin Panel:
+1. Run: python manage.py createsuperuser
+2. Follow the prompts to set an email, username, and password.
+3. Start the server, go to http://127.0.0.1:8001/admin/, and log in.

@@ -1,0 +1,50 @@
+{% comment %}
+Reusable Workout Row - used in Smart Coach and Weekly Blueprint
+Usage: {% include "partials/workout_row.html" with day=day %}
+{% endcomment %}
+<div class="flex items-start gap-4 py-3 border-b border-slate-800 last:border-0 group hover:bg-slate-900/40 px-2 -mx-2 rounded-lg transition-colors">
+
+  <!-- Day label -->
+  <div class="flex-shrink-0 w-14 text-center">
+    <span class="block text-xs font-bold text-slate-500 uppercase tracking-widest">{{ day.day }}</span>
+  </div>
+
+  <!-- Activity info -->
+  <div class="flex-1 min-w-0">
+    <div class="flex items-center gap-2 flex-wrap">
+      <span class="text-sm font-semibold text-slate-100">{{ day.activity }}</span>
+
+      <!-- Intensity badge -->
+      {% if day.intensity == "High" %}
+        <span class="inline-flex items-center px-2 py-0.5 rounded-md text-2xs font-semibold bg-red-500/10 text-red-400 border border-red-500/20">HIGH</span>
+      {% elif day.intensity == "Medium" %}
+        <span class="inline-flex items-center px-2 py-0.5 rounded-md text-2xs font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/20">MEDIUM</span>
+      {% else %}
+        <span class="inline-flex items-center px-2 py-0.5 rounded-md text-2xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">LOW</span>
+      {% endif %}
+
+      <!-- Recovery tag -->
+      {% if day.is_recovery %}
+        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-2xs font-semibold bg-slate-700/60 text-slate-400 border border-slate-700">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" /></svg>
+          Recovery
+        </span>
+      {% endif %}
+    </div>
+
+    <!-- Exercises chips -->
+    {% if day.exercises %}
+    <div class="mt-1.5 flex flex-wrap gap-1">
+      {% for ex in day.exercises %}
+      <span class="text-2xs px-2 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700/60">{{ ex.name }}</span>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Duration -->
+  <div class="flex-shrink-0 text-right">
+    <span class="text-sm font-semibold text-slate-300 tabular-nums">{{ day.duration }}</span>
+    <span class="text-xs text-slate-600"> min</span>
+  </div>
+</div>

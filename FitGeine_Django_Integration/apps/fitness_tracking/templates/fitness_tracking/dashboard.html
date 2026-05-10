@@ -1,0 +1,259 @@
+{% extends "base.html" %}
+{% block title %}Daily Dashboard — FitGenie AI{% endblock %}
+{% block page_title %}Daily Dashboard{% endblock %}
+{% block page_subtitle %}Log each activity session. Steps and sleep are stored once per day.{% endblock %}
+
+{% block content %}
+
+<!-- ══ TIER 1: KPI Cards ══ -->
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+  {% include "partials/kpi_card.html" with title="Calories Burned" value=total_calories unit="kcal" icon="fire" only %}
+  {% include "partials/kpi_card.html" with title="Sessions Logged" value=total_sessions unit="sessions" icon="steps" only %}
+  {% include "partials/kpi_card.html" with title="Avg. Sleep" value=avg_sleep unit="hrs/night" icon="moon" only %}
+  {% include "partials/kpi_card.html" with title="Daily Step Goal" value=goal_steps unit="steps" icon="heart" only %}
+</div>
+
+<!-- ══ TIER 2: Forms + Charts ══ -->
+<div class="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-6">
+
+  <!-- ── Combined Log Form ── -->
+  <div class="xl:col-span-1 bg-slate-900 border border-slate-800 rounded-xl p-6 space-y-6">
+
+    <form method="POST" id="log-form" class="space-y-5">
+      {% csrf_token %}
+
+      <!-- Section A: Daily Summary (once per day) -->
+      <div>
+        <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+          <span class="h-px flex-1 bg-slate-800"></span>Daily Metrics<span class="h-px flex-1 bg-slate-800"></span>
+        </p>
+
+        <!-- Task 3: type="date" via Django DateInput widget -->
+        <div class="space-y-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-500 uppercase tracking-widest mb-1.5">Date</label>
+            <input type="date" name="date"
+                   value="{{ summary_form.date.value|date:'Y-m-d' }}"
+                   max="{{ today|date:'Y-m-d' }}"
+                   class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100
+                          [color-scheme:dark] focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-500 transition-colors" />
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-semibold text-slate-500 uppercase tracking-widest mb-1.5">Steps</label>
+              <input type="number" name="total_steps" min="0" max="100000" step="100"
+                     value="{{ summary_form.total_steps.value|default:'0' }}"
+                     placeholder="e.g. 8000"
+                     class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100
+                            focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-500 transition-colors" />
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-500 uppercase tracking-widest mb-1.5">Sleep (hrs)</label>
+              <input type="number" name="hours_sleep" min="0" max="24" step="0.5"
+                     value="{{ summary_form.hours_sleep.value|default:'7.0' }}"
+                     placeholder="e.g. 7.5"
+                     class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100
+                            focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-500 transition-colors" />
+            </div>
+          </div>
+
+          <!-- Stress slider -->
+          <div>
+            <label class="block text-xs font-semibold text-slate-500 uppercase tracking-widest mb-1.5">
+              Stress — <span class="text-brand-400 font-bold" id="stress-display">5</span>/10
+            </label>
+            <input type="range" name="stress_level" id="stress-range"
+                   min="1" max="10" step="1"
+                   value="{{ summary_form.stress_level.value|default:'5' }}"
+                   oninput="document.getElementById('stress-display').textContent=this.value"
+                   class="w-full accent-brand-500 cursor-pointer" />
+            <div class="flex justify-between text-xs text-slate-600 mt-0.5">
+              <span>Calm</span><span>Stressed</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section B: Activity Session -->
+      <div>
+        <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2">
+          <span class="h-px flex-1 bg-slate-800"></span>Activity Session<span class="h-px flex-1 bg-slate-800"></span>
+        </p>
+        <div class="space-y-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-500 uppercase tracking-widest mb-1.5">Activity Type</label>
+            <select name="activity_type"
+                    class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100
+                           focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-500 transition-colors">
+              <option value="">— Select —</option>
+              {% for val, label in activity_form.fields.activity_type.choices %}
+                {% if val %}<option value="{{ val }}" {% if activity_form.activity_type.value == val %}selected{% endif %}>{{ label }}</option>{% endif %}
+              {% endfor %}
+            </select>
+            {% if activity_form.activity_type.errors %}
+              <p class="mt-1 text-xs text-red-400">{{ activity_form.activity_type.errors|join:" " }}</p>
+            {% endif %}
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-500 uppercase tracking-widest mb-1.5">Duration (minutes)</label>
+            <input type="number" name="duration_minutes" min="5" max="600" step="5"
+                   value="{{ activity_form.duration_minutes.value|default:'30' }}"
+                   placeholder="e.g. 45"
+                   class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100
+                          focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-500 transition-colors" />
+          </div>
+        </div>
+      </div>
+
+      <!-- Errors -->
+      {% if summary_form.errors or activity_form.errors %}
+      <div class="text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">
+        {% for field in summary_form %}{% for e in field.errors %}{{ field.label }}: {{ e }} {% endfor %}{% endfor %}
+        {% for field in activity_form %}{% for e in field.errors %}{{ field.label }}: {{ e }} {% endfor %}{% endfor %}
+      </div>
+      {% endif %}
+
+      <button type="submit"
+              class="w-full bg-brand-500 hover:bg-brand-600 text-white text-sm font-semibold py-2.5 rounded-xl transition-colors">
+        + Log Session
+      </button>
+      <p class="text-center text-xs text-slate-600">
+        Logging multiple sessions on the same date is safe — steps &amp; sleep update, sessions stack.
+      </p>
+    </form>
+  </div>
+
+  <!-- ── Charts (Task 2: empty-state + connectgaps) ── -->
+  <div class="xl:col-span-2 space-y-4">
+
+    {% if has_data %}
+    <div class="bg-slate-900 border border-slate-800 rounded-xl p-6">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-sm font-semibold text-slate-100">Daily Steps vs Goal</h2>
+        <span class="text-xs text-slate-600 bg-slate-800 border border-slate-700 px-2 py-1 rounded-md">Last 90 days</span>
+      </div>
+      <div id="chart-steps" style="height:230px;"></div>
+    </div>
+
+    <div class="bg-slate-900 border border-slate-800 rounded-xl p-6">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-sm font-semibold text-slate-100">Calories Burned per Day</h2>
+        <span class="text-xs text-slate-600 bg-slate-800 border border-slate-700 px-2 py-1 rounded-md">Summed across all sessions</span>
+      </div>
+      <div id="chart-calories" style="height:210px;"></div>
+    </div>
+
+    {% else %}
+    <!-- Task 2: Empty-state UI instead of blank Plotly renders -->
+    <div class="bg-slate-900 border border-slate-800 rounded-xl flex flex-col items-center justify-center text-center px-6"
+         style="min-height:470px;">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-slate-700 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
+      </svg>
+      <p class="text-sm font-semibold text-slate-500">No activity data yet</p>
+      <p class="text-xs text-slate-600 mt-1.5 max-w-xs leading-relaxed">
+        Log your first session using the form on the left. Charts appear automatically once data exists.
+      </p>
+    </div>
+    {% endif %}
+
+  </div>
+</div>
+
+<!-- ══ TIER 3: Activity History Table ══ -->
+<div class="bg-slate-900 border border-slate-800 rounded-xl">
+  <div class="flex items-center justify-between px-6 py-4 border-b border-slate-800">
+    <h2 class="text-sm font-semibold text-slate-100">Recent Activity History</h2>
+    <span class="text-xs text-slate-600">Last 14 days</span>
+  </div>
+
+  {% if recent_summaries %}
+  <div class="divide-y divide-slate-800">
+    {% for summary in recent_summaries %}
+    <div class="px-6 py-4">
+      <!-- Date row -->
+      <div class="flex items-center justify-between mb-2">
+        <span class="text-xs font-bold text-slate-400 font-mono">{{ summary.date }}</span>
+        <div class="flex items-center gap-3 text-xs text-slate-500">
+          <span>{{ summary.total_steps }} steps</span>
+          <span>{{ summary.hours_sleep }}h sleep</span>
+          <span class="{% if summary.stress_level >= 8 %}text-red-400{% elif summary.stress_level >= 5 %}text-amber-400{% else %}text-emerald-400{% endif %}">
+            stress {{ summary.stress_level }}/10
+          </span>
+        </div>
+      </div>
+      <!-- Activity sessions for this day -->
+      <div class="flex flex-wrap gap-2">
+        {% for act in summary.activities.all %}
+        <div class="flex items-center gap-2 bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5">
+          <span class="inline-block px-2 py-0.5 rounded bg-brand-500/10 text-brand-400 border border-brand-500/20 text-xs font-medium">
+            {{ act.activity_type }}
+          </span>
+          <span class="text-xs text-slate-400 tabular-nums">{{ act.duration_minutes|floatformat:0 }} min</span>
+          <span class="text-xs text-slate-500 tabular-nums">{{ act.calories_burned|floatformat:0 }} kcal</span>
+        </div>
+        {% empty %}
+        <span class="text-xs text-slate-600">No activities logged for this day.</span>
+        {% endfor %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="flex flex-col items-center justify-center py-12 text-center">
+    <p class="text-sm font-medium text-slate-500">No history yet</p>
+    <p class="text-xs text-slate-600 mt-1">Your logged sessions will appear here.</p>
+  </div>
+  {% endif %}
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+{% if has_data %}
+<script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+<script>
+  const data = {{ logs_json|safe }};
+
+  const baseLayout = {
+    paper_bgcolor: 'transparent',
+    plot_bgcolor:  'transparent',
+    font:   { family: 'Inter, sans-serif', size: 11, color: '#94a3b8' },
+    margin: { l: 48, r: 16, t: 10, b: 48 },
+    xaxis:  { gridcolor: '#1e293b', linecolor: '#1e293b', tickfont: { size: 10 } },
+    yaxis:  { gridcolor: '#1e293b', linecolor: '#1e293b', tickfont: { size: 10 } },
+    showlegend: true,
+    legend: { bgcolor: 'transparent', font: { size: 11, color: '#64748b' } },
+  };
+  const cfg = { responsive: true, displayModeBar: false };
+
+  // Steps vs Goal — Task 2: connectgaps:true fills missing dates
+  Plotly.newPlot('chart-steps', [
+    {
+      x: data.dates, y: data.steps,
+      type: 'scatter', mode: 'lines+markers', name: 'Steps',
+      connectgaps: true,                        // Task 2 fix
+      line: { color: '#6366f1', width: 2 },
+      marker: { size: 4, color: '#6366f1' },
+    },
+    {
+      x: data.dates, y: data.goal,
+      type: 'scatter', mode: 'lines', name: 'Daily Goal',
+      connectgaps: true,
+      line: { color: '#334155', width: 1.5, dash: 'dot' },
+    },
+  ], baseLayout, cfg);
+
+  // Calories per day — bar chart (one bar = one date, summed in view)
+  Plotly.newPlot('chart-calories', [
+    {
+      x: data.dates, y: data.calories,
+      type: 'bar', name: 'Calories',
+      marker: { color: '#6366f1', opacity: 0.8 },
+    },
+  ], { ...baseLayout, showlegend: false }, cfg);
+</script>
+{% endif %}
+{% endblock %}

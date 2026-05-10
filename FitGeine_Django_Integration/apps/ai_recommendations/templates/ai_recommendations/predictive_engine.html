@@ -1,0 +1,213 @@
+{% extends "base.html" %}
+{% load ai_filters %}
+{% block title %}Predictive Engine — FitGenie AI{% endblock %}
+{% block page_title %}Predictive Engine{% endblock %}
+{% block page_subtitle %}ML-powered fitness persona from your behavioural baseline.{% endblock %}
+
+{% block content %}
+
+{% if error %}
+<div class="bg-red-500/10 border border-red-500/20 rounded-xl p-6 flex items-start gap-3">
+  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-red-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" /></svg>
+  <div>
+    <p class="text-sm font-semibold text-red-400">Model Unavailable</p>
+    <p class="text-xs text-red-400/70 mt-1">{{ error }}</p>
+    <p class="text-xs text-slate-500 mt-2">Ensure <code class="bg-slate-800 px-1 rounded">fitness_model.joblib</code> is present in the project root and <code class="bg-slate-800 px-1 rounded">ML_MODEL_PATH</code> is set in settings.</p>
+  </div>
+</div>
+
+{% elif result %}
+
+<!-- ══ Row 1: Persona Card + Radar Chart ══ -->
+<div class="grid grid-cols-1 lg:grid-cols-5 gap-6 mb-6">
+
+  <!-- Persona Card -->
+  <div class="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-xl p-6 flex flex-col justify-between">
+    <div>
+      <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-brand-500/10 border border-brand-500/20 text-xs font-semibold text-brand-400 uppercase tracking-widest">
+        ML Persona · Cluster {{ result.cluster_id }}
+      </span>
+      <h2 class="text-3xl font-bold text-slate-100 mt-4 leading-tight">{{ result.persona_name }}</h2>
+      <p class="text-sm text-slate-400 mt-2 leading-relaxed">
+        {% if result.persona_name == "Peak Performer" %}
+          You exhibit high daily activity, excellent sleep, and well-managed stress. Consistency is your superpower.
+        {% elif result.persona_name == "Balanced Builder" %}
+          Solid routine with good recovery. Small consistency improvements unlock your next performance tier.
+        {% elif result.persona_name == "Recovery Rebalancer" %}
+          Stress or sleep irregularities are impacting output. Prioritising recovery this week will compound.
+        {% else %}
+          Beginning of your data journey. Consistent logging over 7 days reveals your true baseline.
+        {% endif %}
+      </p>
+    </div>
+    <div class="mt-6 space-y-2.5">
+      <div class="flex items-center justify-between py-2 border-b border-slate-800">
+        <span class="text-xs text-slate-500">Daily Steps (median)</span>
+        <span class="text-sm font-semibold text-slate-200 tabular-nums">{{ baseline.daily_steps|floatformat:0 }}</span>
+      </div>
+      <div class="flex items-center justify-between py-2 border-b border-slate-800">
+        <span class="text-xs text-slate-500">Avg. Sleep (median)</span>
+        <span class="text-sm font-semibold text-slate-200 tabular-nums">{{ baseline.hours_sleep|floatformat:1 }}h</span>
+      </div>
+      <div class="flex items-center justify-between py-2">
+        <span class="text-xs text-slate-500">Stress Level (median)</span>
+        <span class="text-sm font-semibold {% if baseline.stress_level >= 8 %}text-red-400{% elif baseline.stress_level >= 5 %}text-amber-400{% else %}text-emerald-400{% endif %} tabular-nums">
+          {{ baseline.stress_level|floatformat:1 }}/10
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <!-- BUG 3 FIX: Radar chart — normalised 0–100 scale, data from server JSON -->
+  <div class="lg:col-span-3 bg-slate-900 border border-slate-800 rounded-xl p-6">
+    <div class="flex items-center justify-between mb-1">
+      <h2 class="text-sm font-semibold text-slate-100">You vs Persona Average</h2>
+      <span class="text-xs text-slate-600 bg-slate-800 border border-slate-700 px-2 py-1 rounded-md">Normalised 0–100</span>
+    </div>
+    <p class="text-xs text-slate-600 mb-4">All metrics scaled to the same axis. Higher = better (BMI and stress are inverted).</p>
+    <div id="chart-radar" style="height:300px;"></div>
+  </div>
+</div>
+
+<!-- ══ Row 2: Raw Metric Comparison Table ══ -->
+<div class="bg-slate-900 border border-slate-800 rounded-xl mb-6">
+  <div class="px-6 py-4 border-b border-slate-800">
+    <h2 class="text-sm font-semibold text-slate-100">Raw Metric Breakdown</h2>
+    <p class="text-xs text-slate-500 mt-0.5">Actual values — the radar above normalises these for visual comparison.</p>
+  </div>
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm">
+      <thead>
+        <tr class="border-b border-slate-800">
+          <th class="px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-widest">Metric</th>
+          <th class="px-6 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-widest">You</th>
+          <th class="px-6 py-3 text-right text-xs font-semibold text-slate-500 uppercase tracking-widest">{{ result.persona_name }} Avg</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-800">
+        {% for metric, value in result.user_metrics.items %}
+        <tr class="hover:bg-slate-800/40 transition-colors">
+          <td class="px-6 py-3 text-slate-300 font-medium">{{ metric }}</td>
+          <td class="px-6 py-3 text-right font-semibold text-slate-100 tabular-nums">{{ value }}</td>
+          <td class="px-6 py-3 text-right text-slate-400 tabular-nums">{{ result.persona_averages|get_item:metric }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ══ Row 3: Weekly Blueprint — Premium Card Grid ══ -->
+{% if weekly_plan %}
+<div class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+
+  <!-- Header -->
+  <div class="flex items-center justify-between px-6 py-4 border-b border-slate-800">
+    <div>
+      <h2 class="text-sm font-semibold text-slate-100">Your Weekly Blueprint</h2>
+      <p class="text-xs text-slate-500 mt-0.5">Personalised from your goal, available time & medical profile.</p>
+    </div>
+    <a href="{% url 'smart_coach' %}"
+       class="inline-flex items-center gap-1.5 text-xs text-brand-400 hover:text-brand-300 font-semibold transition-colors">
+      Full Coach
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3"/>
+      </svg>
+    </a>
+  </div>
+
+  <!-- 7-column card grid (scrolls horizontally on mobile) -->
+  <div class="p-4 overflow-x-auto">
+    <div class="grid grid-cols-7 gap-3 min-w-[700px]">
+
+      {% for day in weekly_plan %}
+
+      {% comment %}Intensity → colour mapping{% endcomment %}
+      {% if day.intensity == "High" %}
+        {% with ring="ring-red-500/30" bg="bg-red-500/10" text="text-red-400" border="border-red-500/20" dot="bg-red-500" badge_label="HIGH" %}
+        {% include "partials/_blueprint_card.html" %}
+        {% endwith %}
+      {% elif day.intensity == "Medium" %}
+        {% with ring="ring-brand-500/30" bg="bg-brand-500/10" text="text-brand-400" border="border-brand-500/20" dot="bg-brand-500" badge_label="MED" %}
+        {% include "partials/_blueprint_card.html" %}
+        {% endwith %}
+      {% else %}
+        {% with ring="ring-emerald-500/30" bg="bg-emerald-500/10" text="text-emerald-400" border="border-emerald-500/20" dot="bg-emerald-500" badge_label="LOW" %}
+        {% include "partials/_blueprint_card.html" %}
+        {% endwith %}
+      {% endif %}
+
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Legend -->
+  <div class="px-6 py-3 border-t border-slate-800 flex items-center gap-5">
+    <p class="text-xs text-slate-600 mr-2">Intensity:</p>
+    <span class="flex items-center gap-1.5 text-xs text-red-400"><span class="h-2 w-2 rounded-full bg-red-500"></span>High</span>
+    <span class="flex items-center gap-1.5 text-xs text-brand-400"><span class="h-2 w-2 rounded-full bg-brand-500"></span>Medium</span>
+    <span class="flex items-center gap-1.5 text-xs text-emerald-400"><span class="h-2 w-2 rounded-full bg-emerald-500"></span>Low / Recovery</span>
+  </div>
+
+</div>
+{% endif %}
+
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+{% if result %}
+<script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+<script>
+  // BUG 3 FIX: radar_json is built & normalised in the VIEW — no Django template filter hacks
+  const radar = {{ radar_json|safe }};
+
+  Plotly.newPlot('chart-radar', [
+    {
+      type: 'scatterpolar',
+      r: radar.you,
+      theta: radar.labels,
+      fill: 'toself',
+      name: 'You',
+      line: { color: '#6366f1', width: 2 },
+      fillcolor: 'rgba(99,102,241,0.15)',
+      hovertemplate: '<b>%{theta}</b><br>Score: %{r:.1f}/100<extra></extra>',
+    },
+    {
+      type: 'scatterpolar',
+      r: radar.avg,
+      theta: radar.labels,
+      fill: 'toself',
+      name: '{{ result.persona_name }} Avg',
+      line: { color: '#475569', width: 1.5, dash: 'dot' },
+      fillcolor: 'rgba(71,85,105,0.15)',
+      hovertemplate: '<b>%{theta}</b><br>Score: %{r:.1f}/100<extra></extra>',
+    },
+  ], {
+    paper_bgcolor: 'transparent',
+    plot_bgcolor:  'transparent',
+    font: { family: 'Inter, sans-serif', size: 11, color: '#64748b' },
+    margin: { l: 24, r: 24, t: 24, b: 24 },
+    polar: {
+      bgcolor: 'transparent',
+      radialaxis: {
+        visible: true,
+        range: [0, 100],
+        gridcolor: '#1e293b',
+        linecolor: '#1e293b',
+        tickfont: { size: 9, color: '#475569' },
+        ticksuffix: '',
+        dtick: 25,
+      },
+      angularaxis: {
+        gridcolor: '#1e293b',
+        linecolor: '#1e293b',
+        tickfont: { size: 11, color: '#94a3b8' },
+      },
+    },
+    showlegend: true,
+    legend: { bgcolor: 'transparent', font: { size: 11, color: '#64748b' }, orientation: 'h', y: -0.05 },
+  }, { responsive: true, displayModeBar: false });
+</script>
+{% endif %}
+{% endblock %}

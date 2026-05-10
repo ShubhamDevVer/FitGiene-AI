@@ -1,0 +1,192 @@
+{% extends "base.html" %}
+{% block title %}Profile Setup — FitGenie AI{% endblock %}
+{% block page_title %}Profile Setup{% endblock %}
+{% block page_subtitle %}Your baseline configuration for AI-personalised recommendations.{% endblock %}
+
+{% block content %}
+
+<!-- Computed Metrics Bar -->
+<div class="grid grid-cols-3 gap-4 mb-6">
+  <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 text-center">
+    <p class="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-1">BMI</p>
+    <p class="text-2xl font-bold {% if bmi %}{% if bmi > 25 %}text-amber-400{% elif bmi < 18.5 %}text-red-400{% else %}text-emerald-400{% endif %}{% else %}text-slate-600{% endif %} tabular-nums">
+      {{ bmi|default:"—" }}
+    </p>
+    <p class="text-xs text-slate-600 mt-1">
+      {% if bmi %}{% if bmi > 30 %}Obese{% elif bmi > 25 %}Overweight{% elif bmi < 18.5 %}Underweight{% else %}Normal{% endif %}{% else %}Set height & weight{% endif %}
+    </p>
+  </div>
+  <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 text-center">
+    <p class="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-1">BMR</p>
+    <p class="text-2xl font-bold text-slate-100 tabular-nums">{{ bmr|default:"—" }}</p>
+    <p class="text-xs text-slate-600 mt-1">kcal / day at rest</p>
+  </div>
+  <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 text-center">
+    <p class="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-1">Est. Body Fat</p>
+    <p class="text-2xl font-bold text-slate-100 tabular-nums">{% if body_fat %}{{ body_fat }}%{% else %}—{% endif %}</p>
+    <p class="text-xs text-slate-600 mt-1">Deurenberg formula</p>
+  </div>
+</div>
+
+<!-- Form Card -->
+<div class="bg-slate-900 border border-slate-800 rounded-xl">
+  <div class="px-6 py-4 border-b border-slate-800">
+    <h2 class="text-sm font-semibold text-slate-100">Personal Details</h2>
+    <p class="text-xs text-slate-500 mt-0.5">Changes are immediately reflected in your AI recommendations.</p>
+  </div>
+
+  <form method="POST" id="profile-form" class="p-6">
+    {% csrf_token %}
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+
+      <!-- Age -->
+      <div>
+        <label for="id_age" class="block text-xs font-semibold text-slate-500 uppercase tracking-widest mb-1.5">Age</label>
+        <input type="number" name="age" id="id_age" min="15" max="80"
+               value="{{ form.age.value|default:30 }}"
+               class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-slate-100
+                      focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-500 transition-colors" />
+        {% if form.age.errors %}<p class="mt-1 text-xs text-red-400">{{ form.age.errors|join:" " }}</p>{% endif %}
+      </div>
+
+      <!-- Gender -->
+      <div>
+        <label for="id_gender" class="block text-xs font-semibold text-slate-500 uppercase tracking-widest mb-1.5">Gender</label>
+        <select name="gender" id="id_gender"
+                class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-slate-100
+                       focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-500 transition-colors">
+          {% for val, label in form.fields.gender.choices %}
+          <option value="{{ val }}" {% if form.gender.value == val %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <!-- Available Time -->
+      <div>
+        <label for="id_available_time" class="block text-xs font-semibold text-slate-500 uppercase tracking-widest mb-1.5">Available Time (min/day)</label>
+        <input type="number" name="available_time" id="id_available_time" min="15" max="180" step="5"
+               value="{{ form.available_time.value|default:45 }}"
+               class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-slate-100
+                      focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-500 transition-colors" />
+      </div>
+
+      <!-- Height -->
+      <div>
+        <label for="id_height_cm" class="block text-xs font-semibold text-slate-500 uppercase tracking-widest mb-1.5">Height (cm)</label>
+        <input type="number" name="height_cm" id="id_height_cm" min="120" max="230" step="0.5"
+               value="{{ form.height_cm.value|default:170 }}"
+               class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-slate-100
+                      focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-500 transition-colors" />
+      </div>
+
+      <!-- Weight -->
+      <div>
+        <label for="id_weight_kg" class="block text-xs font-semibold text-slate-500 uppercase tracking-widest mb-1.5">Weight (kg)</label>
+        <input type="number" name="weight_kg" id="id_weight_kg" min="30" max="250" step="0.1"
+               value="{{ form.weight_kg.value|default:70 }}"
+               class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-slate-100
+                      focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-500 transition-colors" />
+      </div>
+
+      <!-- Medical Condition -->
+      <div>
+        <label for="id_medical_condition" class="block text-xs font-semibold text-slate-500 uppercase tracking-widest mb-1.5">Medical Condition</label>
+        <select name="medical_condition" id="id_medical_condition"
+                class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-slate-100
+                       focus:outline-none focus:ring-2 focus:ring-brand-500/40 focus:border-brand-500 transition-colors">
+          {% for val, label in form.fields.medical_condition.choices %}
+          <option value="{{ val }}" {% if form.medical_condition.value == val %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <!-- ── BUG 1 FIX: Goal Radio Group ────────────────────────────────────────
+           Each radio has a unique id (goal_0, goal_1, goal_2) but shares name="goal".
+           The label's `for` matches the id — clicking the label toggles the real input.
+           Pure HTML/CSS — no JavaScript needed. Active border/color driven by
+           the :has() CSS selector (supported in all modern browsers).
+           A small JS block below handles the visual card highlight on change
+           because :has() doesn't work with adjacent-sibling selectors in all browsers.
+      ─────────────────────────────────────────────────────────────────────── -->
+      <div class="md:col-span-2 lg:col-span-3">
+        <p class="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-2">Primary Goal</p>
+        <div class="grid grid-cols-3 gap-3" id="goal-group">
+          {% for val, label in form.fields.goal.choices %}
+          <label for="goal_{{ forloop.counter0 }}"
+                 class="goal-option flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all
+                        {% if form.goal.value == val %}border-brand-500 bg-brand-500/10{% else %}border-slate-700 bg-slate-800/50 hover:border-slate-600{% endif %}"
+                 data-value="{{ val }}">
+            <input type="radio"
+                   name="goal"
+                   id="goal_{{ forloop.counter0 }}"
+                   value="{{ val }}"
+                   {% if form.goal.value == val %}checked{% endif %}
+                   class="sr-only goal-radio" />
+            <span class="goal-dot h-3.5 w-3.5 rounded-full border-2 flex-shrink-0 transition-all
+                         {% if form.goal.value == val %}border-brand-500 bg-brand-500{% else %}border-slate-600{% endif %}"></span>
+            <span class="goal-label text-sm font-medium transition-colors
+                         {% if form.goal.value == val %}text-brand-400{% else %}text-slate-400{% endif %}">
+              {{ label }}
+            </span>
+          </label>
+          {% endfor %}
+        </div>
+        {% if form.goal.errors %}<p class="mt-2 text-xs text-red-400">{{ form.goal.errors|join:" " }}</p>{% endif %}
+      </div>
+    </div>
+
+    {% if form.errors %}
+    <div class="mt-4 text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">
+      Please correct the errors above.
+    </div>
+    {% endif %}
+
+    <div class="mt-6 flex items-center justify-between pt-4 border-t border-slate-800">
+      <p class="text-xs text-slate-600">BMI, BMR and body fat auto-recalculate on save.</p>
+      <button type="submit"
+              class="bg-brand-500 hover:bg-brand-600 text-white text-sm font-semibold px-6 py-2.5 rounded-xl transition-colors">
+        Save Profile
+      </button>
+    </div>
+  </form>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  // BUG 1 FIX: Radio group visual state management
+  // Applies/removes active classes on the label cards when any radio changes.
+  // Each <input type="radio"> has a unique id and shares name="goal" — correct HTML.
+  const radios = document.querySelectorAll('.goal-radio');
+
+  function updateGoalUI(selectedValue) {
+    document.querySelectorAll('.goal-option').forEach(label => {
+      const isSelected = label.dataset.value === selectedValue;
+      // Card border + background
+      label.classList.toggle('border-brand-500', isSelected);
+      label.classList.toggle('bg-brand-500/10',  isSelected);
+      label.classList.toggle('border-slate-700', !isSelected);
+      label.classList.toggle('bg-slate-800/50',  !isSelected);
+      // Dot fill
+      const dot = label.querySelector('.goal-dot');
+      dot.classList.toggle('border-brand-500', isSelected);
+      dot.classList.toggle('bg-brand-500',     isSelected);
+      dot.classList.toggle('border-slate-600', !isSelected);
+      dot.classList.toggle('bg-transparent',   !isSelected);
+      // Label colour
+      const text = label.querySelector('.goal-label');
+      text.classList.toggle('text-brand-400',  isSelected);
+      text.classList.toggle('text-slate-400',  !isSelected);
+    });
+  }
+
+  radios.forEach(radio => {
+    radio.addEventListener('change', () => updateGoalUI(radio.value));
+  });
+
+  // Initialise on page load from the server-rendered checked state
+  const checkedRadio = document.querySelector('.goal-radio:checked');
+  if (checkedRadio) updateGoalUI(checkedRadio.value);
+</script>
+{% endblock %}
